@@ -131,7 +131,7 @@ curl            ==> output file
 Start-Process file.exe  ==> Execute file.exe
 & file.exe      ==> Execute file.exe
 cmd /c        ==> Execute file.exe
-
+-UseBasicParsing  ==> Just returns raw response (text/file) without HTML/rendering
 
 
 
