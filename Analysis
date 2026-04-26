@@ -1,0 +1,18 @@
+Step - 1:
+  Identify Command
+      Look for - Powershell/CMD/mshta/rundll32/curl/bitsadmin/finger
+Step - 2:
+  Look for:
+      -enc
+      -base64
+  Decode:
+    Linux:  echo BASE64VALUE | base64 -d
+
+Step - 3:
+    Find:
+        http
+        https
+  These are payload/C2/staging
+
+Step - 4:
+  Identify Download Method
